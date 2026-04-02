@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# Models and data (large files)
+models/*.pkl
+models/*.onnx
+models/*.npy
+models/*.pt
+data/*.csv
+
+# Node
+node_modules/
+frontend/dist/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
