@@ -7,10 +7,8 @@ venv/
 .venv/
 
 # Models and data (large files)
-models/*.pkl
-models/*.onnx
-models/*.npy
-models/*.pt
+# Models and data
+# Keeping model files tracked for hackathon demo
 data/*.csv
 
 # Node
