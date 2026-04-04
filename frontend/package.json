@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@babylonjs/core": "^9.1.0",
+    "@babylonjs/loaders": "^9.1.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
