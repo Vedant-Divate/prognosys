@@ -213,12 +213,12 @@ export default function App() {
 
           {/* Sensor Gauges — bottom 40% */}
           <div style={{
-            flex: '0 0 40%',
+            flex: '0 0 44%',
             background: 'var(--bg-surface)',
             overflow: 'hidden',
           }}>
             <PanelLabel>Live Sensor Telemetry</PanelLabel>
-            <div style={{ height: 'calc(100% - 29px)', padding: '8px 12px' }}>
+            <div style={{ height: 'calc(100% - 29px)', padding: '4px 8px', overflowY: 'auto' }}>
               <SensorGauges machineState={state} />
             </div>
           </div>
