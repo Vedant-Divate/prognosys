@@ -9,7 +9,7 @@ import WhatIfSimulator from './components/WhatIfSimulator'
 import TimeTravel from './components/TimeTravel'
 import FMEAPanel from './components/FMEAPanel'
 
-const WS_URL = 'ws://localhost:8000/ws/machine-state'
+const WS_URL = 'ws://127.0.0.1:8000/api/sensor/ws/machine-state'
 
 // ── Connection Status Indicator ──────────────────────────────
 function StatusDot({ status }) {
@@ -219,7 +219,7 @@ export default function App() {
           }}>
             <PanelLabel>Live Sensor Telemetry</PanelLabel>
             <div style={{ height: 'calc(100% - 29px)', padding: '8px 12px' }}>
-              <SensorGauges state={state} />
+              <SensorGauges machineState={state} />
             </div>
           </div>
         </main>
