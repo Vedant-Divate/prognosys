@@ -159,8 +159,10 @@ export default function App() {
   // ── Health Certificate PDF generation ─────────────────────
   useEffect(() => {
     const handler = async () => {
-      const { jsPDF } = await import('jspdf')
-      await import('jspdf-autotable')
+      const jspdfModule = await import('jspdf')
+      const { jsPDF } = jspdfModule
+      const autoTableModule = await import('jspdf-autotable')
+      const autoTable = autoTableModule.default
 
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
       const W = 210, pageH = 297
@@ -254,7 +256,7 @@ export default function App() {
         ['Active Flags',     state.anomaly_flags?.join(', ') || 'None'],
       ]
 
-      doc.autoTable({
+      autoTable(doc,{
         startY: y,
         head: [],
         body: summaryRows,
@@ -273,7 +275,7 @@ export default function App() {
       })
 
       // ── Section: Sensor Readings ──
-      y = doc.lastAutoTable.finalY + 10
+      y = doc.lastAutoTable?.finalY ?? 120 + 10
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(10)
       doc.setTextColor(0, 212, 255)
@@ -282,74 +284,53 @@ export default function App() {
       doc.rect(14, y + 1.5, 60, 0.4, 'F')
       y += 6
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: y,
         head: [['Parameter', 'Value', 'Unit', 'Threshold', 'Status']],
         body: [
-          [
-            'Vibration RMS',
-            state.vibration_rms.toFixed(2),
-            'mm/s', '4.5 mm/s',
-            state.vibration_rms > 4.5 ? 'CRITICAL' : state.vibration_rms > 3.0 ? 'WARNING' : 'NOMINAL',
-          ],
-          [
-            'Spindle Load',
-            state.spindle_load.toFixed(1),
-            '%', '85%',
-            state.spindle_load > 85 ? 'CRITICAL' : state.spindle_load > 75 ? 'WARNING' : 'NOMINAL',
-          ],
-          [
-            'Temperature',
-            state.temperature_c.toFixed(1),
-            '°C', '85°C',
-            state.temperature_c > 85 ? 'CRITICAL' : state.temperature_c > 75 ? 'WARNING' : 'NOMINAL',
-          ],
-          [
-            'Tool Life',
-            state.tool_life_pct.toFixed(1),
-            '%', '20%',
-            state.tool_life_pct < 20 ? 'CRITICAL' : state.tool_life_pct < 40 ? 'WARNING' : 'NOMINAL',
-          ],
+          ['Vibration RMS', state.vibration_rms.toFixed(2), 'mm/s', '4.5 mm/s',
+            state.vibration_rms > 4.5 ? '!! CRITICAL' : state.vibration_rms > 3.0 ? '~ WARNING' : 'OK NOMINAL'],
+          ['Spindle Load',  state.spindle_load.toFixed(1),  '%',    '85%',
+            state.spindle_load > 85 ? '!! CRITICAL' : state.spindle_load > 75 ? '~ WARNING' : 'OK NOMINAL'],
+          ['Temperature',   state.temperature_c.toFixed(1), '°C',   '85°C',
+            state.temperature_c > 85 ? '!! CRITICAL' : state.temperature_c > 75 ? '~ WARNING' : 'OK NOMINAL'],
+          ['Tool Life',     state.tool_life_pct.toFixed(1), '%',    '20%',
+            state.tool_life_pct < 20 ? '!! CRITICAL' : state.tool_life_pct < 40 ? '~ WARNING' : 'OK NOMINAL'],
         ],
         theme: 'grid',
         headStyles: {
-          fillColor: [10, 20, 40],
-          textColor: [0, 212, 255],
+          fillColor: [10, 20, 40], textColor: [0, 212, 255],
           fontStyle: 'bold', fontSize: 8,
           lineColor: [26, 42, 74], lineWidth: 0.3,
         },
         bodyStyles: {
-          textColor: [140, 170, 200],
-          fontSize: 8,
+          textColor: [140, 170, 200], fontSize: 8,
           fillColor: [6, 11, 25],
           lineColor: [20, 35, 60], lineWidth: 0.2,
         },
-        alternateRowStyles: {
-          fillColor: [10, 18, 35],
-        },
-        didDrawCell: (data) => {
+        alternateRowStyles: { fillColor: [10, 18, 35] },
+        willDrawCell: (data) => {
           if (data.section === 'body' && data.column.index === 4) {
-            const txt = data.cell.text[0]
-            const color = txt === 'CRITICAL' ? [255, 34, 0]
-              : txt === 'WARNING' ? [255, 170, 0]
-              : [34, 204, 34]
-            data.doc.setTextColor(...color)
-            data.doc.setFont('helvetica', 'bold')
-            data.doc.text(
-              txt,
-              data.cell.x + data.cell.width / 2,
-              data.cell.y + data.cell.height / 2 + 1,
-              { align: 'center' }
-            )
-            // Return false prevents default text draw
-            return false
+            const txt = data.cell.text[0] ?? ''
+            if (txt.startsWith('!!')) {
+              data.doc.setTextColor(255, 34, 0)
+              data.doc.setFont('helvetica', 'bold')
+            } else if (txt.startsWith('~')) {
+              data.doc.setTextColor(255, 170, 0)
+              data.doc.setFont('helvetica', 'bold')
+            } else {
+              data.doc.setTextColor(34, 204, 34)
+              data.doc.setFont('helvetica', 'bold')
+            }
+            // Clean up the prefix before drawing
+            data.cell.text[0] = txt.replace(/^!!|^~|^OK/, '').trim()
           }
         },
         margin: { left: 14, right: 14 },
       })
 
       // ── Section: Subsystem States ──
-      y = doc.lastAutoTable.finalY + 10
+      y = doc.lastAutoTable?.finalY ?? 120 + 10
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(10)
       doc.setTextColor(0, 212, 255)
@@ -387,7 +368,7 @@ export default function App() {
       doc.rect(14, y + 1.5, 72, 0.4, 'F')
       y += 6
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: y,
         head: [['Model', 'Type', 'Result']],
         body: [
