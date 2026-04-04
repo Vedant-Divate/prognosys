@@ -135,10 +135,10 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
 
         // ── Floating labels ──
         const labelDefs = [
-          { name: 'spindle', text: '◉ SPINDLE', pos: new BABYLON.Vector3(-3, 7,  1) },
-          { name: 'bearing', text: '◎ BEARING', pos: new BABYLON.Vector3( 0, 6, -2) },
-          { name: 'tool',    text: '▼ TOOL',    pos: new BABYLON.Vector3( 3, 5,  1) },
-          { name: 'coolant', text: '~ COOLANT', pos: new BABYLON.Vector3( 1, 4, -3) },
+          { name: 'spindle', text: '◉ SPINDLE', pos: new BABYLON.Vector3(-4, 8,  0) },
+          { name: 'bearing', text: '◎ BEARING', pos: new BABYLON.Vector3( -2, 6,  3) },
+          { name: 'tool',    text: '▼ TOOL',    pos: new BABYLON.Vector3( 4, 5,  0) },
+          { name: 'coolant', text: '~ COOLANT', pos: new BABYLON.Vector3( 2, 7, -3) },
         ]
 
         labelDefs.forEach(({ name, text, pos }) => {
@@ -241,21 +241,23 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
       })
 
       // Very subtle emissive tint on all meshes — keeps original colours
-      const [r, g, b] = colorMap[worst] ?? colorMap.green
-      const emissive   = new BABYLON.Color3(r * 0.08, g * 0.08, b * 0.08)
+      // No emissive tint — machine keeps original white/grey colours
+      // Status communicated only through HighlightLayer glow
+    //   const [r, g, b] = colorMap[worst] ?? colorMap.green
+    //   const emissive   = new BABYLON.Color3(r * 0.08, g * 0.08, b * 0.08)
 
-      allMeshes.forEach(mesh => {
-        if (!mesh?.material) return
-        try {
-          BABYLON.Animation.CreateAndStartAnimation(
-            `em_${mesh.uniqueId}`, mesh.material, 'emissiveColor',
-            60, 20,
-            mesh.material.emissiveColor?.clone() ?? new BABYLON.Color3(0, 0, 0),
-            emissive,
-            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-          )
-        } catch (_) {}
-      })
+    //   allMeshes.forEach(mesh => {
+    //     if (!mesh?.material) return
+    //     try {
+    //       BABYLON.Animation.CreateAndStartAnimation(
+    //         `em_${mesh.uniqueId}`, mesh.material, 'emissiveColor',
+    //         60, 20,
+    //         mesh.material.emissiveColor?.clone() ?? new BABYLON.Color3(0, 0, 0),
+    //         emissive,
+    //         BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    //       )
+    //     } catch (_) {}
+    //   })
 
       // HighlightLayer glow — only on fault, only on a subset of meshes
       // Use first 25% of meshes (spindle/headstock area of the lathe)
