@@ -62,9 +62,10 @@ def run_inference(reading: dict) -> dict:
     tool  = float(reading.get("tool_life_pct", 100.0))
 
     features_array = np.array([[vib, load, temp, tool]])
-    
+    features_df = pd.DataFrame(features_array, columns=FEATURES)
+
     # 1. Isolation Forest
-    scaled = scaler.transform(features_array)
+    scaled = scaler.transform(features_df)
     iso_score = iso_forest.decision_function(scaled)[0]
     anomaly_score = float(np.clip(1.0 - (iso_score + 0.5), 0.0, 1.0))
     is_anomaly = bool(iso_forest.predict(scaled)[0] == -1)
@@ -85,7 +86,7 @@ def run_inference(reading: dict) -> dict:
         lstm_anomaly = bool(lstm_error > lstm_threshold)
 
     # 3. Ridge Regression Predictions
-    features_df = pd.DataFrame(features_array, columns=FEATURES)
+    #features_df = pd.DataFrame(features_array, columns=FEATURES)
     preds = what_if_model.predict(features_df)[0]
     
     sub_states = _compute_subsystem_states(vib, load, temp, tool)
