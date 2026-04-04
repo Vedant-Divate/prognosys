@@ -141,17 +141,27 @@ export function PanelLabel({ children }) {
 export default function App() {
   const { state, status } = useWebSocket(WS_URL)
   const [fmeaVisible, setFmeaVisible] = useState(false)
-  const prevAnomalyRef = useRef(false)
+  // const prevAnomalyRef = useRef(false)
 
   // Auto-show FMEA panel when anomaly is detected
+  const fmeaTimerRef = useRef(null)
+
   useEffect(() => {
-    if (state.is_anomaly && !prevAnomalyRef.current) {
+    if (state.is_anomaly) {
       setFmeaVisible(true)
+      if (fmeaTimerRef.current) {
+        clearTimeout(fmeaTimerRef.current)
+        fmeaTimerRef.current = null
+      }
+    } else {
+      // Hide after 45 seconds of no anomaly
+      if (!fmeaTimerRef.current) {
+        fmeaTimerRef.current = setTimeout(() => {
+          setFmeaVisible(false)
+          fmeaTimerRef.current = null
+        }, 45000)
+      }
     }
-    if (!state.is_anomaly && prevAnomalyRef.current) {
-      setFmeaVisible(false)
-    }
-    prevAnomalyRef.current = state.is_anomaly
   }, [state.is_anomaly])
 
   // Critical alarm vignette — health below 30
@@ -465,7 +475,7 @@ export default function App() {
         }}>
           {/* 3D Machine Viewer — top 60% */}
           <div style={{
-            flex: '0 0 60%',
+            flex: '0 0 58%',
             background: 'var(--bg-base)',
             borderBottom: '1px solid var(--border-subtle)',
             position: 'relative',
@@ -481,7 +491,7 @@ export default function App() {
 
           {/* Sensor Gauges — bottom 40% */}
           <div style={{
-            flex: '0 0 44%',
+            flex: '1',
             background: 'var(--bg-surface)',
             overflow: 'hidden',
           }}>
