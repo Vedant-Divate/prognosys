@@ -88,7 +88,8 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
         width: 40, height: 40,
       }, scene)
       const groundMat = new BABYLON.StandardMaterial('groundMat', scene)
-      groundMat.diffuseColor = new BABYLON.Color3(0.04, 0.07, 0.12)
+      groundMat.diffuseColor = new BABYLON.Color3(0.02, 0.03, 0.06)
+      groundMat.specularColor = new BABYLON.Color3(0.0, 0.05, 0.1)
       groundMat.specularColor = new BABYLON.Color3(0, 0, 0)
       ground.material = groundMat
       ground.position.y = -0.01
