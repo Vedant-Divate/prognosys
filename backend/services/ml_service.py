@@ -6,6 +6,8 @@ import pandas as pd
 import os
 from collections import deque
 from backend.models.schemas import MachineState
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 
 # ── Robust Path Resolution ──────────────────────────────────────────────────
 # Get the absolute path to the 'models' folder relative to this script
