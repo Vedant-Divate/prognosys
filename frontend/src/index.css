@@ -1,0 +1,304 @@
+/* ============================================================
+   PROGNOSYS DESIGN SYSTEM — GLOBAL CSS
+   Dark Industrial SCADA Aesthetic
+   ============================================================ */
+
+@import "tailwindcss";
+
+/* ── Color Design Tokens ───────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg-void:        #040810;
+  --bg-base:        #0a0f1a;
+  --bg-surface:     #0d1421;
+  --bg-elevated:    #111827;
+  --bg-card:        #131d2e;
+  --bg-overlay:     rgba(4, 8, 16, 0.85);
+
+  /* Brand Accents */
+  --accent-blue:    #00d4ff;
+  --accent-blue-dim: #0099bb;
+  --accent-blue-glow: rgba(0, 212, 255, 0.15);
+
+  /* Status Colors */
+  --status-green:   #22cc44;
+  --status-amber:   #ffaa00;
+  --status-red:     #ff2200;
+  --status-green-glow: rgba(34, 204, 68, 0.2);
+  --status-amber-glow: rgba(255, 170, 0, 0.2);
+  --status-red-glow:   rgba(255, 34, 0, 0.2);
+
+  /* Text */
+  --text-primary:   #e8f0fe;
+  --text-secondary: #7a8fa6;
+  --text-muted:     #3d5168;
+  --text-accent:    #00d4ff;
+
+  /* Borders */
+  --border-subtle:  rgba(0, 212, 255, 0.08);
+  --border-dim:     rgba(0, 212, 255, 0.15);
+  --border-active:  rgba(0, 212, 255, 0.35);
+
+  /* Fonts */
+  --font-display:   'Rajdhani', sans-serif;
+  --font-mono:      'Share Tech Mono', monospace;
+  --font-body:      'Inter', sans-serif;
+
+  /* Timing */
+  --transition-fast:   150ms ease;
+  --transition-base:   300ms ease;
+  --transition-slow:   500ms ease;
+}
+
+/* ── Reset & Base ──────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* ── Scrollbar Styling ─────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-active);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
+}
+
+/* ── Typography Utilities ──────────────────────────────────── */
+.font-display  { font-family: var(--font-display); }
+.font-mono     { font-family: var(--font-mono); }
+
+/* ── Industrial Grid Background ────────────────────────────── */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── Scanline Overlay ──────────────────────────────────────── */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.04) 2px,
+    rgba(0, 0, 0, 0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Card / Panel Base ─────────────────────────────────────── */
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-blue-dim), transparent);
+  opacity: 0.6;
+}
+
+/* ── Corner Decoration ─────────────────────────────────────── */
+.corner-tl::after,
+.corner-br::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: var(--accent-blue);
+  border-style: solid;
+  opacity: 0.5;
+}
+.corner-tl::after {
+  top: 0; left: 0;
+  border-width: 1px 0 0 1px;
+}
+.corner-br::after {
+  bottom: 0; right: 0;
+  border-width: 0 1px 1px 0;
+}
+
+/* ── Status Color Utilities ────────────────────────────────── */
+.text-green  { color: var(--status-green); }
+.text-amber  { color: var(--status-amber); }
+.text-red    { color: var(--status-red); }
+.text-blue   { color: var(--accent-blue); }
+
+/* ── Pulse Animations ──────────────────────────────────────── */
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--status-red-glow); }
+  50%       { opacity: 0.85; box-shadow: 0 0 20px 8px var(--status-red-glow); }
+}
+
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+
+@keyframes blink-critical {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slide-in-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes count-flash {
+  0%   { color: var(--accent-blue); }
+  100% { color: inherit; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { text-shadow: 0 0 10px currentColor, 0 0 20px currentColor; }
+  50%       { text-shadow: 0 0 20px currentColor, 0 0 40px currentColor, 0 0 60px currentColor; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes data-stream {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* ── Utility Classes ───────────────────────────────────────── */
+.animate-pulse-red     { animation: pulse-red 2s ease-in-out infinite; }
+.animate-pulse-amber   { animation: pulse-amber 1.5s ease-in-out infinite; }
+.animate-blink-crit    { animation: blink-critical 1s ease-in-out infinite; }
+.animate-slide-right   { animation: slide-in-right 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-up      { animation: slide-in-up 300ms ease forwards; }
+.animate-glow-pulse    { animation: glow-pulse 2s ease-in-out infinite; }
+.animate-spin-slow     { animation: spin-slow 8s linear infinite; }
+
+/* ── Number Flash on Change ─────────────────────────────────── */
+.value-changed {
+  animation: count-flash 400ms ease forwards;
+}
+
+/* ── Full-Screen Alarm Vignette ─────────────────────────────── */
+.alarm-vignette {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(255, 34, 0, 0.18) 100%);
+  pointer-events: none;
+  z-index: 9999;
+  animation: pulse-red 2s ease-in-out infinite;
+}
+
+/* ── Status Badge ───────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.badge-critical { background: rgba(255,34,0,0.15);   color: var(--status-red);   border: 1px solid rgba(255,34,0,0.3);   }
+.badge-major    { background: rgba(255,170,0,0.15);  color: var(--status-amber); border: 1px solid rgba(255,170,0,0.3); }
+.badge-minor    { background: rgba(34,204,68,0.15);  color: var(--status-green); border: 1px solid rgba(34,204,68,0.3); }
+.badge-online   { background: rgba(0,212,255,0.1);   color: var(--accent-blue);  border: 1px solid rgba(0,212,255,0.25); }
+
+/* ── Section Label ─────────────────────────────────────────── */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Divider ───────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-dim), transparent);
+}
+
+/* ── Custom Range Slider ───────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-elevated);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  border: 2px solid var(--bg-base);
+  box-shadow: 0 0 8px var(--accent-blue);
+  transition: box-shadow var(--transition-fast);
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 16px var(--accent-blue);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  border: 2px solid var(--bg-base);
+  box-shadow: 0 0 8px var(--accent-blue);
+}
