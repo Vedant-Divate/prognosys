@@ -4,37 +4,30 @@ from backend.models.state_manager import state_manager
 
 router = APIRouter()
 
-
 @router.websocket("/ws/machine-state")
 async def machine_state_websocket(websocket: WebSocket):
-    """
-    WebSocket endpoint — clients connect here to receive live
-    MachineState JSON broadcasts whenever a new MQTT message
-    is processed by the backend.
-    """
     await websocket.accept()
-    state_manager.clients.append(websocket)
-    print(f"[sensor_router] Client connected. Total clients: {len(state_manager.clients)}")
+    # Ensure your StateManager has a 'subscribers' or 'clients' list
+    if not hasattr(state_manager, 'subscribers'):
+        state_manager.subscribers = []
+    
+    state_manager.subscribers.append(websocket)
+    print(f"[sensor_router] WebSocket connected. Active: {len(state_manager.subscribers)}")
 
-    # Send the current state immediately on connection
-    # so the frontend does not show empty gauges on load
-    await websocket.send_text(state_manager.state.model_dump_json())
+    # Send initial state
+    current = await state_manager.get_current_state()
+    await websocket.send_text(current.model_dump_json())
 
     try:
-        # Keep the connection alive — wait for client messages
-        # (we don't expect any, but this prevents the coroutine from exiting)
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        state_manager.clients.remove(websocket)
-        print(f"[sensor_router] Client disconnected. Total clients: {len(state_manager.clients)}")
+        state_manager.subscribers.remove(websocket)
+        print(f"[sensor_router] WebSocket disconnected.")
 
-
-@router.get("/api/machine-state")
+@router.get("/live") # This becomes /api/sensor/live when prefixed in main.py
 async def get_machine_state():
     """
-    REST fallback — returns the current MachineState as JSON.
-    Useful for the frontend to fetch initial state on page load
-    before the WebSocket connection is established.
+    Returns the current MachineState as JSON.
     """
-    return state_manager.get_state_dict()
+    return await state_manager.get_current_state()
