@@ -1,5 +1,6 @@
 // frontend/src/components/MachineViewer.jsx
 import { useEffect, useRef, useState } from 'react'
+import { calcOEE } from './OEEPanel'
 
 const MachineViewer = ({ subsystemStates, healthScore, machineState }) => {
   const canvasRef          = useRef(null)
@@ -513,6 +514,36 @@ const MachineViewer = ({ subsystemStates, healthScore, machineState }) => {
     ctx.fillStyle = '#ffffff'
     ctx.fillText(`ANOMALY SCORE  ${(score * 100).toFixed(0)}%`, 28, 379)
 
+    // Inside drawHUD, after the anomaly bar, before texture.update():
+    const { oee, availability, performance, quality } = calcOEE(machineState)
+    const oeeColor = oee >= 85 ? '#00ff88' : oee >= 65 ? '#ffaa00' : '#ff3300'
+    ctx.font      = 'bold 13px monospace'
+    ctx.fillStyle = '#445577'
+    ctx.textAlign = 'left'
+    ctx.fillText('OEE', 20, 400 - 10)
+    ctx.font      = 'bold 28px monospace'
+    ctx.fillStyle = oeeColor
+    ctx.fillText(`${oee.toFixed(1)}%`, 20, 400 + 18)
+    // A P Q mini bars
+    const barLabels = [
+      { label: 'A', val: availability },
+      { label: 'P', val: performance  },
+      { label: 'Q', val: quality      },
+    ]
+    barLabels.forEach(({ label, val }, i) => {
+      const bx = W / 2 + 20 + i * 120
+      const bc = val >= 85 ? '#00ff88' : val >= 65 ? '#ffaa00' : '#ff3300'
+      ctx.font      = '11px monospace'
+      ctx.fillStyle = '#445577'
+      ctx.fillText(label, bx, 400)
+      ctx.fillStyle = '#0a1428'
+      roundRect(ctx, bx, 405, 100, 12, 3); ctx.fill()
+      ctx.fillStyle = bc
+      roundRect(ctx, bx, 405, val, 12, 3); ctx.fill()
+      ctx.font      = 'bold 11px monospace'
+      ctx.fillStyle = bc
+      ctx.fillText(`${val.toFixed(0)}%`, bx, 430)
+    })
     texture.update()
   }, [machineState, vrActive])
 

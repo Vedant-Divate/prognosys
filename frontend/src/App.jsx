@@ -8,6 +8,7 @@ import MachineViewer from './components/MachineViewer'
 import WhatIfSimulator from './components/WhatIfSimulator'
 import TimeTravel from './components/TimeTravel'
 import FMEAPanel from './components/FMEAPanel'
+import OEEPanel from './components/OEEPanel'
 
 const WS_URL = `${import.meta.env.VITE_WS_BASE}/api/sensor/ws/machine-state?ngrok-skip-browser-warning=true`
 
@@ -518,6 +519,16 @@ export default function App() {
           </div>
 
           <div className="divider" />
+
+          {/* OEE Panel */}
+          <div style={{ flexShrink: 0 }}>
+            <PanelLabel>OEE — Overall Equipment Effectiveness</PanelLabel>
+            <OEEPanel state={state} />
+          </div>
+
+          <div className="divider" />
+
+          {/* FMEA Panel */}
 
           {/* FMEA Panel — slides in when anomaly detected */}
           <div style={{
