@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# in your root .gitignore, add:
+frontend/.env.production
+frontend/.env.development
+.vercel

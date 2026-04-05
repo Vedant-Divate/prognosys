@@ -1,14 +1,20 @@
 // frontend/src/components/MachineViewer.jsx
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-const MachineViewer = ({ subsystemStates, healthScore }) => {
-  const canvasRef       = useRef(null)
-  const engineRef       = useRef(null)
-  const sceneRef        = useRef(null)
-  const hlRef           = useRef(null)
-  const labelsRef       = useRef([])
-  const resultRef       = useRef(null)   // stores ImportMeshAsync result
-  const subsystemStatesRef = useRef(subsystemStates) // latest states for async access
+const MachineViewer = ({ subsystemStates, healthScore, machineState }) => {
+  const canvasRef          = useRef(null)
+  const engineRef          = useRef(null)
+  const sceneRef           = useRef(null)
+  const hlRef              = useRef(null)
+  const labelsRef          = useRef([])
+  const resultRef          = useRef(null)
+  const subsystemStatesRef = useRef(subsystemStates)
+  const xrRef              = useRef(null)
+  const hudMeshRef         = useRef(null)
+  const hudTextureRef      = useRef(null)
+
+  const [vrSupported, setVrSupported] = useState(false)
+  const [vrActive,    setVrActive]    = useState(false)
 
   const colorMap = {
     green: [0.133, 0.8,   0.133],
@@ -21,7 +27,16 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
     subsystemStatesRef.current = subsystemStates
   }, [subsystemStates])
 
-  // ── Scene setup — runs once ──────────────────────────────────
+  // ── Check WebXR support on mount ──────────────────────────────
+  useEffect(() => {
+    if (navigator.xr) {
+      navigator.xr.isSessionSupported('immersive-vr')
+        .then(supported => setVrSupported(supported))
+        .catch(() => setVrSupported(false))
+    }
+  }, [])
+
+  // ── Scene setup — runs once ───────────────────────────────────
   useEffect(() => {
     let cleanup = false
 
@@ -46,13 +61,13 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
         'cam', -Math.PI / 2.2, Math.PI / 3.5, 18,
         new BABYLON.Vector3(0, 1.5, 0), scene
       )
-      camera.lowerRadiusLimit    = 8
-      camera.upperRadiusLimit    = 30
-      camera.upperBetaLimit      = Math.PI / 2.05
-      camera.wheelDeltaPercentage = 0.01
+      camera.lowerRadiusLimit      = 8
+      camera.upperRadiusLimit      = 30
+      camera.upperBetaLimit        = Math.PI / 2.05
+      camera.wheelDeltaPercentage  = 0.01
       camera.attachControl(canvasRef.current, true)
       camera.useAutoRotationBehavior = true
-      camera.autoRotationBehavior.idleRotationSpeed   = 0.2
+      camera.autoRotationBehavior.idleRotationSpeed    = 0.2
       camera.autoRotationBehavior.idleRotationWaitTime = 2000
 
       // ── Lighting ──
@@ -121,13 +136,13 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
           max = BABYLON.Vector3.Maximize(max, bi.boundingBox.maximumWorld)
         })
 
-        const size       = max.subtract(min)
-        const maxDim     = Math.max(size.x, size.y, size.z)
-        const scale      = 10 / maxDim
-        root.scaling     = new BABYLON.Vector3(scale, scale, scale)
+        const size    = max.subtract(min)
+        const maxDim  = Math.max(size.x, size.y, size.z)
+        const scale   = 10 / maxDim
+        root.scaling  = new BABYLON.Vector3(scale, scale, scale)
 
-        const centre     = min.add(max).scale(0.5)
-        root.position    = new BABYLON.Vector3(
+        const centre  = min.add(max).scale(0.5)
+        root.position = new BABYLON.Vector3(
           -centre.x * scale,
           -min.y   * scale,
           -centre.z * scale
@@ -136,7 +151,7 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
         // ── Floating labels ──
         const labelDefs = [
           { name: 'spindle', text: '◉ SPINDLE', pos: new BABYLON.Vector3(-4, 8,  0) },
-          { name: 'bearing', text: '◎ BEARING', pos: new BABYLON.Vector3( -2, 6,  3) },
+          { name: 'bearing', text: '◎ BEARING', pos: new BABYLON.Vector3(-2, 6,  3) },
           { name: 'tool',    text: '▼ TOOL',    pos: new BABYLON.Vector3( 4, 5,  0) },
           { name: 'coolant', text: '~ COOLANT', pos: new BABYLON.Vector3( 2, 7, -3) },
         ]
@@ -145,7 +160,7 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
           const plane = BABYLON.MeshBuilder.CreatePlane(`lbl_${name}`, {
             width: 2.4, height: 0.55,
           }, scene)
-          plane.position     = pos
+          plane.position      = pos
           plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL
 
           const dt  = new BABYLON.DynamicTexture(`dt_${name}`, { width: 320, height: 72 }, scene)
@@ -153,7 +168,6 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
 
           const draw = (color) => {
             ctx.clearRect(0, 0, 320, 72)
-            // Use composite operation to ensure real transparency
             ctx.globalCompositeOperation = 'source-over'
             ctx.fillStyle = 'rgba(4,9,20,0.88)'
             ctx.fillRect(0, 0, 320, 72)
@@ -180,7 +194,7 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
           mat.emissiveTexture            = dt
           mat.useAlphaFromDiffuseTexture = true
           mat.backFaceCulling            = false
-          mat.alphaMode                  = 2 // BABYLON.Engine.ALPHA_COMBINE
+          mat.alphaMode                  = 2
           plane.material                 = mat
 
           labelsRef.current.push({ name, plane, dt, draw })
@@ -188,13 +202,35 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
 
       } catch (err) {
         console.error('[MachineViewer] GLB load failed:', err)
-        // Fallback box
-        const fb  = BABYLON.MeshBuilder.CreateBox('fb', { size: 4 }, scene)
+        const fb = BABYLON.MeshBuilder.CreateBox('fb', { size: 4 }, scene)
         fb.position.y = 2
-        const fm  = new BABYLON.StandardMaterial('fm', scene)
+        const fm = new BABYLON.StandardMaterial('fm', scene)
         fm.emissiveColor = new BABYLON.Color3(0.05, 0.2, 0.4)
         fb.material = fm
+        resultRef.current = { meshes: [fb] }
       }
+
+      // ── VR HUD plane (hidden until VR starts) ──────────────────
+      const hudPlane = BABYLON.MeshBuilder.CreatePlane(
+        'hud', { width: 1.6, height: 1.0 }, scene
+      )
+      hudPlane.position  = new BABYLON.Vector3(2.5, 5, 0)
+      hudPlane.isVisible = false
+      hudMeshRef.current = hudPlane
+
+      const hudTexture = new BABYLON.DynamicTexture(
+        'hudTex', { width: 640, height: 400 }, scene
+      )
+      hudTextureRef.current = hudTexture
+
+      const hudMat = new BABYLON.StandardMaterial('hudMat', scene)
+      hudMat.diffuseTexture             = hudTexture
+      hudMat.emissiveTexture            = hudTexture
+      hudMat.backFaceCulling            = false
+      hudMat.alphaMode                  = 2
+      hudTexture.hasAlpha               = true
+      hudMat.useAlphaFromDiffuseTexture = true
+      hudPlane.material                 = hudMat
 
       // Render loop
       engine.runRenderLoop(() => { if (scene) scene.render() })
@@ -217,6 +253,68 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
     }
   }, [])
 
+  // ── Enter / Exit VR ───────────────────────────────────────────
+  const toggleVR = async () => {
+    const scene = sceneRef.current
+    if (!scene) return
+
+    if (vrActive && xrRef.current) {
+      try {
+        await xrRef.current.baseExperience.exitXRAsync()
+      } catch (_) {}
+      setVrActive(false)
+      if (hudMeshRef.current) hudMeshRef.current.isVisible = false
+      return
+    }
+
+    try {
+      const BABYLON = await import('@babylonjs/core')
+
+      // Ground mesh for teleportation floor
+      const floorMeshes = scene.meshes.filter(m => m.name === 'ground')
+
+      const xr = await scene.createDefaultXRExperienceAsync({
+        floorMeshes,
+        optionalFeatures:      true,
+        disableTeleportation:  false,
+      })
+      xrRef.current = xr
+
+      // Track XR state changes
+      xr.baseExperience.onStateChangedObservable.add(state => {
+        const isInXR = state === BABYLON.WebXRState.IN_XR
+        setVrActive(isInXR)
+        if (hudMeshRef.current) {
+          hudMeshRef.current.isVisible = isInXR
+        }
+      })
+
+      // Position HUD in front of user when first pose is known
+      xr.baseExperience.onInitialXRPoseInitializedObservable.add(xrCamera => {
+        if (!hudMeshRef.current) return
+        const forward = xrCamera.getDirection(BABYLON.Axis.Z)
+        // Place HUD 2m ahead and slightly to the right at eye level
+        hudMeshRef.current.position = xrCamera.position
+          .add(forward.scale(2.0))
+          .add(new BABYLON.Vector3(0.8, 0, 0))
+        hudMeshRef.current.lookAt(xrCamera.position)
+      })
+
+      await xr.baseExperience.enterXRAsync('immersive-vr', 'local-floor')
+      setVrActive(true)
+      if (hudMeshRef.current) hudMeshRef.current.isVisible = true
+
+    } catch (err) {
+      console.error('[VR] Failed to enter XR:', err)
+      alert(
+        'Could not start VR session.\n\n' +
+        'Make sure you are using the Meta Quest Browser ' +
+        'and the page is served over HTTP/HTTPS on your local network.\n\n' +
+        'Navigate to http://<your-laptop-ip>:5173 on the Quest.'
+      )
+    }
+  }
+
   // ── Subsystem colour updates ──────────────────────────────────
   useEffect(() => {
     if (!sceneRef.current || !subsystemStates || !resultRef.current) return
@@ -224,7 +322,7 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
     import('@babylonjs/core').then((BABYLON) => {
       if (!sceneRef.current || !hlRef.current) return
 
-      const hl       = hlRef.current
+      const hl        = hlRef.current
       const allMeshes = resultRef.current.meshes.filter(
         m => m.getTotalVertices && m.getTotalVertices() > 0
       )
@@ -233,34 +331,12 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
 
       hl.removeAllMeshes()
 
-      // Determine worst status
       const priority = { red: 3, amber: 2, green: 1 }
       let worst = 'green'
       Object.values(subsystemStates).forEach(s => {
         if ((priority[s] ?? 0) > (priority[worst] ?? 0)) worst = s
       })
 
-      // Very subtle emissive tint on all meshes — keeps original colours
-      // No emissive tint — machine keeps original white/grey colours
-      // Status communicated only through HighlightLayer glow
-    //   const [r, g, b] = colorMap[worst] ?? colorMap.green
-    //   const emissive   = new BABYLON.Color3(r * 0.08, g * 0.08, b * 0.08)
-
-    //   allMeshes.forEach(mesh => {
-    //     if (!mesh?.material) return
-    //     try {
-    //       BABYLON.Animation.CreateAndStartAnimation(
-    //         `em_${mesh.uniqueId}`, mesh.material, 'emissiveColor',
-    //         60, 20,
-    //         mesh.material.emissiveColor?.clone() ?? new BABYLON.Color3(0, 0, 0),
-    //         emissive,
-    //         BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-    //       )
-    //     } catch (_) {}
-    //   })
-
-      // HighlightLayer glow — only on fault, only on a subset of meshes
-      // Use first 25% of meshes (spindle/headstock area of the lathe)
       if (worst === 'red' || worst === 'amber') {
         const glowColor  = worst === 'red'
           ? new BABYLON.Color3(1.0, 0.05, 0.0)
@@ -298,6 +374,148 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
     }
   }, [healthScore])
 
+  // ── Update VR HUD whenever machineState changes ───────────────
+  useEffect(() => {
+    const texture = hudTextureRef.current
+    if (!texture || !machineState) return
+
+    // Only paint if VR is active — saves GPU when not in headset
+    if (!vrActive && hudMeshRef.current && !hudMeshRef.current.isVisible) return
+
+    const ctx = texture.getContext()
+    const W = 640, H = 400
+
+    // Background
+    ctx.clearRect(0, 0, W, H)
+    ctx.fillStyle = 'rgba(5, 10, 20, 0.90)'
+    roundRect(ctx, 0, 0, W, H, 20)
+    ctx.fill()
+
+    // Border colour based on health
+    const h = machineState.health_score ?? 100
+    const borderCol = h >= 70 ? '#00ff88' : h >= 40 ? '#ffaa00' : '#ff3300'
+    ctx.strokeStyle = borderCol
+    ctx.lineWidth   = 4
+    roundRect(ctx, 2, 2, W - 4, H - 4, 18)
+    ctx.stroke()
+
+    // Title bar
+    ctx.fillStyle = 'rgba(0, 180, 255, 0.12)'
+    roundRect(ctx, 4, 4, W - 8, 52, 14)
+    ctx.fill()
+    ctx.font      = 'bold 20px monospace'
+    ctx.fillStyle = '#a0c8ff'
+    ctx.fillText('PrognoSys  ·  CNC-01  LIVE TELEMETRY', 20, 36)
+
+    // Divider
+    ctx.strokeStyle = '#1a3060'
+    ctx.lineWidth   = 1
+    ctx.beginPath()
+    ctx.moveTo(20, 60); ctx.lineTo(W - 20, 60)
+    ctx.stroke()
+
+    // Health score — large centrepiece
+    const hColour = h >= 70 ? '#00ff88' : h >= 40 ? '#ffaa00' : '#ff3300'
+    ctx.font      = 'bold 64px monospace'
+    ctx.fillStyle = hColour
+    ctx.fillText(`${h.toFixed(1)}%`, 20, 135)
+
+    ctx.font      = '15px monospace'
+    ctx.fillStyle = '#556688'
+    ctx.fillText('COMPOSITE HEALTH SCORE', 20, 155)
+
+    // RUL — top right
+    ctx.font      = 'bold 36px monospace'
+    ctx.fillStyle = '#88aadd'
+    ctx.textAlign = 'right'
+    ctx.fillText(`${(machineState.rul_hours ?? 168).toFixed(0)}h`, W - 20, 115)
+    ctx.font      = '14px monospace'
+    ctx.fillStyle = '#445566'
+    ctx.fillText('RUL REMAINING', W - 20, 135)
+    ctx.textAlign = 'left'
+
+    // Divider
+    ctx.strokeStyle = '#1a3060'
+    ctx.lineWidth   = 1
+    ctx.beginPath()
+    ctx.moveTo(20, 168); ctx.lineTo(W - 20, 168)
+    ctx.stroke()
+
+    // Sensor rows — 2 columns
+    const leftRows = [
+      { label: 'VIBRATION RMS', value: `${(machineState.vibration_rms ?? 0).toFixed(2)} mm/s`  },
+      { label: 'SPINDLE LOAD',  value: `${(machineState.spindle_load  ?? 0).toFixed(1)} %`      },
+    ]
+    const rightRows = [
+      { label: 'TEMPERATURE',   value: `${(machineState.temperature_c ?? 0).toFixed(1)} °C`     },
+      { label: 'TOOL LIFE',     value: `${(machineState.tool_life_pct ?? 100).toFixed(1)} %`    },
+    ]
+
+    leftRows.forEach(({ label, value }, i) => {
+      const y = 205 + i * 48
+      ctx.font      = '13px monospace'
+      ctx.fillStyle = '#445577'
+      ctx.fillText(label, 20, y)
+      ctx.font      = 'bold 22px monospace'
+      ctx.fillStyle = '#cce0ff'
+      ctx.fillText(value, 20, y + 24)
+    })
+
+    rightRows.forEach(({ label, value }, i) => {
+      const y = 205 + i * 48
+      ctx.font      = '13px monospace'
+      ctx.fillStyle = '#445577'
+      ctx.fillText(label, W / 2 + 20, y)
+      ctx.font      = 'bold 22px monospace'
+      ctx.fillStyle = '#cce0ff'
+      ctx.fillText(value, W / 2 + 20, y + 24)
+    })
+
+    // Divider
+    ctx.strokeStyle = '#1a3060'
+    ctx.lineWidth   = 1
+    ctx.beginPath()
+    ctx.moveTo(20, 308); ctx.lineTo(W - 20, 308)
+    ctx.stroke()
+
+    // Anomaly status badge
+    const isAnomaly = machineState.is_anomaly || machineState.lstm_anomaly
+    ctx.fillStyle   = isAnomaly ? '#cc1100' : '#006633'
+    roundRect(ctx, 20, 318, 260, 40, 8)
+    ctx.fill()
+    ctx.font      = 'bold 15px monospace'
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(
+      isAnomaly ? '⚠  ANOMALY DETECTED' : '✓  NOMINAL OPERATION',
+      34, 342
+    )
+
+    // Active anomaly flags
+    if (machineState.anomaly_flags?.length > 0) {
+      ctx.font      = '13px monospace'
+      ctx.fillStyle = '#ff8855'
+      ctx.fillText(
+        machineState.anomaly_flags.slice(0, 2).join('  ·  '),
+        300, 342
+      )
+    }
+
+    // Anomaly score bar
+    const score = machineState.anomaly_score ?? 0
+    ctx.fillStyle = '#0a1428'
+    roundRect(ctx, 20, 364, W - 40, 20, 4)
+    ctx.fill()
+    const barW = Math.max(0, Math.min(1, score)) * (W - 40)
+    ctx.fillStyle = score > 0.7 ? '#ff3300' : score > 0.4 ? '#ffaa00' : '#00aa66'
+    roundRect(ctx, 20, 364, barW, 20, 4)
+    ctx.fill()
+    ctx.font      = '11px monospace'
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(`ANOMALY SCORE  ${(score * 100).toFixed(0)}%`, 28, 379)
+
+    texture.update()
+  }, [machineState, vrActive])
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <canvas
@@ -307,19 +525,19 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
 
       {/* Health badge */}
       <div style={{
-        position: 'absolute', top: 10, left: 12,
+        position:   'absolute', top: 10, left: 12,
         fontFamily: "'Share Tech Mono', monospace",
-        fontSize: '11px', letterSpacing: '2px',
+        fontSize:   '11px', letterSpacing: '2px',
         color: healthScore >= 70 ? '#22cc22'
              : healthScore >= 40 ? '#ffaa00' : '#ff2200',
         background: 'rgba(4,9,20,0.82)',
-        padding: '4px 10px',
+        padding:    '4px 10px',
         border: `1px solid ${
           healthScore >= 70 ? '#22cc2255'
           : healthScore >= 40 ? '#ffaa0055' : '#ff220055'
         }`,
         borderRadius: '3px',
-        transition: 'all 0.5s ease',
+        transition:   'all 0.5s ease',
       }}>
         HEALTH {healthScore?.toFixed(1) ?? '--'}%
       </div>
@@ -337,16 +555,79 @@ const MachineViewer = ({ subsystemStates, healthScore }) => {
         }} />
       ))}
 
+      {/* VR Button — shown only when WebXR is supported */}
+      {vrSupported && (
+        <button
+          onClick={toggleVR}
+          style={{
+            position:      'absolute',
+            bottom:        '20px',
+            right:         '20px',
+            padding:       '10px 22px',
+            background:    vrActive
+              ? 'linear-gradient(135deg, #cc2200, #991100)'
+              : 'linear-gradient(135deg, #0055ff, #0033bb)',
+            color:         '#ffffff',
+            border:        'none',
+            borderRadius:  '8px',
+            cursor:        'pointer',
+            fontFamily:    'monospace',
+            fontWeight:    'bold',
+            fontSize:      '13px',
+            letterSpacing: '1.5px',
+            boxShadow:     vrActive
+              ? '0 4px 20px rgba(200,30,0,0.5)'
+              : '0 4px 20px rgba(0,80,255,0.45)',
+            zIndex:        10,
+            transition:    'all 0.3s ease',
+          }}
+        >
+          {vrActive ? '⏹  EXIT VR' : '🥽  ENTER VR'}
+        </button>
+      )}
+
+      {/* Desktop fallback hint — shown when WebXR not available */}
+      {!vrSupported && (
+        <div style={{
+          position:   'absolute', bottom: '20px', right: '20px',
+          padding:    '8px 14px',
+          background: 'rgba(10, 18, 35, 0.88)',
+          color:      '#334466',
+          borderRadius: '8px',
+          fontFamily:   'monospace',
+          fontSize:     '11px',
+          letterSpacing: '1px',
+          border:       '1px solid #1a3050',
+        }}>
+          🥽 VR — open on Quest Browser
+        </div>
+      )}
+
       {/* Credit */}
       <div style={{
-        position: 'absolute', bottom: 6, right: 10,
+        position:   'absolute', bottom: 6, right: 10,
         fontFamily: 'monospace', fontSize: '8px',
-        color: '#1a3050', letterSpacing: '1px',
+        color:      '#1a3050', letterSpacing: '1px',
       }}>
         EMCONICN CNC LATHE — DIGITAL TWIN
       </div>
     </div>
   )
+}
+
+// ── Helper: rounded rectangle canvas path ─────────────────────────────────────
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.arcTo(x + w, y,     x + w, y + r,     r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+  ctx.lineTo(x + r, y + h)
+  ctx.arcTo(x,     y + h, x,     y + h - r, r)
+  ctx.lineTo(x,    y + r)
+  ctx.arcTo(x,     y,     x + r, y,         r)
+  ctx.closePath()
 }
 
 export default MachineViewer

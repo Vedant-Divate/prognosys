@@ -1,7 +1,7 @@
 // frontend/src/components/WhatIfSimulator.jsx
 import { useState, useRef, useEffect, useCallback } from 'react'
 
-const API_URL = 'http://127.0.0.1:8000/api/what-if'
+const API_URL = `${import.meta.env.VITE_API_BASE}/api/what-if`
 
 // ── Slider config ─────────────────────────────────────────────
 const SLIDERS = [
@@ -293,7 +293,7 @@ export default function WhatIfSimulator({ liveState }) {
       try {
         const res = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json','ngrok-skip-browser-warning': 'true',},
           body: JSON.stringify(vals),
         })
         const data = await res.json()

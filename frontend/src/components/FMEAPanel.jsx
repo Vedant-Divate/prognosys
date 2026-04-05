@@ -1,7 +1,7 @@
 // frontend/src/components/FMEAPanel.jsx
 import { useState, useEffect, useRef } from 'react'
 
-const API_BASE = 'http://127.0.0.1:8000'
+const API_BASE = import.meta.env.VITE_API_BASE
 
 // ── Severity badge ─────────────────────────────────────────────
 function SeverityBadge({ severity }) {
@@ -265,7 +265,9 @@ export default function FMEAPanel({ anomalyFlags, isVisible }) {
     setLoading(true)
     setError(null)
 
-    fetch(`${API_BASE}/api/fmea/${flag}`)
+    fetch(`${API_BASE}/api/fmea/${flag}`, {
+      headers: { 'ngrok-skip-browser-warning': 'true' }   // ADD THIS
+    })
       .then(res => {
         if (!res.ok) throw new Error(`FMEA fetch failed: ${res.status}`)
         return res.json()

@@ -9,7 +9,7 @@ import WhatIfSimulator from './components/WhatIfSimulator'
 import TimeTravel from './components/TimeTravel'
 import FMEAPanel from './components/FMEAPanel'
 
-const WS_URL = 'ws://127.0.0.1:8000/api/sensor/ws/machine-state'
+const WS_URL = `${import.meta.env.VITE_WS_BASE}/api/sensor/ws/machine-state?ngrok-skip-browser-warning=true`
 
 // ── Connection Status Indicator ──────────────────────────────
 function StatusDot({ status }) {
@@ -485,6 +485,7 @@ export default function App() {
               <MachineViewer
                 subsystemStates={state.subsystem_states}
                 healthScore={state.health_score}
+                machineState={state}
               />
             </div>
           </div>
